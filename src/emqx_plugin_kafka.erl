@@ -107,7 +107,7 @@ on_client_connected(ClientInfo = #{clientid := ClientId}, ConnInfo, _Env) ->
     {timestamp, Now},
     {online, Online}
   ],
-  produce_kafka_payload(Payload),
+  produce_kafka_payload(ClientId, Payload),
   ok.
 
 on_client_disconnected(ClientInfo = #{clientid := ClientId}, ReasonCode, ConnInfo, _Env) ->
@@ -124,7 +124,7 @@ on_client_disconnected(ClientInfo = #{clientid := ClientId}, ReasonCode, ConnInf
     {timestamp, Now},
     {online, Online}
   ],
-  produce_kafka_payload(Payload),
+  produce_kafka_payload(ClientId, Payload),
   ok.
 
 on_client_authenticate(_ClientInfo = #{clientid := ClientId}, Result, _Env) ->
@@ -150,7 +150,7 @@ on_client_subscribe(#{clientid := ClientId}, _Properties, TopicFilters, _Env) ->
     {qos, maps:get(qos, Qos)},
     {timestamp, Now}
   ],
-  produce_kafka_payload(Payload),
+  produce_kafka_payload(ClientId, Payload),
   ok.
 %%---------------------client subscribe stop----------------------%%
 on_client_unsubscribe(#{clientid := ClientId}, _Properties, TopicFilters, _Env) ->
@@ -164,7 +164,7 @@ on_client_unsubscribe(#{clientid := ClientId}, _Properties, TopicFilters, _Env) 
     {topic, Topic},
     {timestamp, Now}
   ],
-  produce_kafka_payload(Payload),
+  produce_kafka_payload(ClientId, Payload),
   ok.
 
 on_message_dropped(#message{topic = <<"$SYS/", _/binary>>}, _By, _Reason, _Env) ->
@@ -180,50 +180,50 @@ on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Env) ->
   ok;
 on_message_publish(Message, _Env) ->
   {ok, Payload} = format_payload(Message),
-  produce_kafka_payload(Payload),
+  produce_kafka_payload(Message#message.from, Payload),
   ok.
 %%---------------------message publish stop----------------------%%
 
 on_message_delivered(_ClientInfo = #{clientid := ClientId}, Message, _Env) ->
-  ?LOG_INFO("[KAFKA PLUGIN]Message delivered to client(~s): ~s~n",
-    [ClientId, emqx_message:format(Message)]),
-  Topic = Message#message.topic,
-  Payload = Message#message.payload,
-  Qos = Message#message.qos,
-  From = Message#message.from,
-  Timestamp = Message#message.timestamp,
-  Content = [
-    {action, <<"message_delivered">>},
-    {from, From},
-    {to, ClientId},
-    {topic, Topic},
-    {payload, Payload},
-    {qos, Qos},
-    {cluster_node, node()},
-    {ts, Timestamp}
-  ],
-  produce_kafka_payload(Content),
+%%  ?LOG_INFO("[KAFKA PLUGIN]Message delivered to client(~s): ~s~n",
+%%    [ClientId, emqx_message:format(Message)]),
+%%  Topic = Message#message.topic,
+%%  Payload = Message#message.payload,
+%%  Qos = Message#message.qos,
+%%  From = Message#message.from,
+%%  Timestamp = Message#message.timestamp,
+%%  Content = [
+%%    {action, <<"message_delivered">>},
+%%    {from, From},
+%%    {to, ClientId},
+%%    {topic, Topic},
+%%    {payload, Payload},
+%%    {qos, Qos},
+%%    {cluster_node, node()},
+%%    {ts, Timestamp}
+%%  ],
+%%  produce_kafka_payload(ClientId,Content),
   ok.
 
 on_message_acked(_ClientInfo = #{clientid := ClientId}, Message, _Env) ->
-  ?LOG_INFO("[KAFKA PLUGIN]Message acked by client(~s): ~s~n",
-    [ClientId, emqx_message:format(Message)]),
-  Topic = Message#message.topic,
-  Payload = Message#message.payload,
-  Qos = Message#message.qos,
-  From = Message#message.from,
-  Timestamp = Message#message.timestamp,
-  Content = [
-    {action, <<"message_acked">>},
-    {from, From},
-    {to, ClientId},
-    {topic, Topic},
-    {payload, Payload},
-    {qos, Qos},
-    {cluster_node, node()},
-    {ts, Timestamp}
-  ],
-  produce_kafka_payload(Content),
+%%  ?LOG_INFO("[KAFKA PLUGIN]Message acked by client(~s): ~s~n",
+%%    [ClientId, emqx_message:format(Message)]),
+%%  Topic = Message#message.topic,
+%%  Payload = Message#message.payload,
+%%  Qos = Message#message.qos,
+%%  From = Message#message.from,
+%%  Timestamp = Message#message.timestamp,
+%%  Content = [
+%%    {action, <<"message_acked">>},
+%%    {from, From},
+%%    {to, ClientId},
+%%    {topic, Topic},
+%%    {payload, Payload},
+%%    {qos, Qos},
+%%    {cluster_node, node()},
+%%    {ts, Timestamp}
+%%  ],
+%%  produce_kafka_payload(ClientId,Content),
   ok.
 
 %%--------------------------------------------------------------------
@@ -335,12 +335,19 @@ unload() ->
   emqx:unhook('message.acked', {?MODULE, on_message_acked}),
   emqx:unhook('message.dropped', {?MODULE, on_message_dropped}).
 
-produce_kafka_payload(Message) ->
+produce_kafka_payload(ClientId, Message) ->
+  %%  Topic = ekaf_get_topic(),
+  %%  {ok, MessageBody} = emqx_json:safe_encode(Message),
+  %%  % ?LOG_INFO("[KAFKA PLUGIN]Message = ~s~n",[MessageBody]),
+  %%  Payload = iolist_to_binary(MessageBody),
+  %%  ekaf:produce_async_batched(Topic, Payload).
+
+  %%  下面自己修改。改成元组的形式，才能根据key的hash来决定分区。注意 配置文件中的kafka.partitionstrategy要改成custom
   Topic = ekaf_get_topic(),
   {ok, MessageBody} = emqx_json:safe_encode(Message),
-  % ?LOG_INFO("[KAFKA PLUGIN]Message = ~s~n",[MessageBody]),
-  Payload = iolist_to_binary(MessageBody),
-  ekaf:produce_async_batched(Topic, Payload).
+  %%  ?LOG_INFO("[KAFKA PLUGIN]MessageBody = ~s~n", [MessageBody]),
+  ekaf_lib:common_async(produce_async_batched, Topic, {ClientId, MessageBody}).
+
 
 ntoa({0, 0, 0, 0, 0, 16#ffff, AB, CD}) ->
   inet_parse:ntoa({AB bsr 8, AB rem 256, CD bsr 8, CD rem 256});
