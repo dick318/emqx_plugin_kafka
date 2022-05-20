@@ -99,7 +99,7 @@ on_client_connected(ClientInfo = #{clientid := ClientId}, ConnInfo, _Env) ->
   Payload = [
     {action, Action},
     {device_id, ClientId},
-    {username, maps:get(username, ClientInfo)},
+%%    {username, maps:get(username, ClientInfo)},
     {keepalive, maps:get(keepalive, ConnInfo)},
     {ipaddress, iolist_to_binary(ntoa(IpAddr))},
     {proto_name, maps:get(proto_name, ConnInfo)},
@@ -119,7 +119,7 @@ on_client_disconnected(ClientInfo = #{clientid := ClientId}, ReasonCode, ConnInf
   Payload = [
     {action, Action},
     {device_id, ClientId},
-    {username, maps:get(username, ClientInfo)},
+%%    {username, maps:get(username, ClientInfo)},
     {reason, ReasonCode},
     {timestamp, Now},
     {online, Online}
@@ -305,7 +305,7 @@ format_payload(Message) ->
   end,
   Payload = [{action, message_publish},
     {device_id, Message#message.from},
-    {username, Username},
+%%    {username, Username},
     {topic, Topic},
     {payload, MsgPayload64},
     {ts, Message#message.timestamp}],
