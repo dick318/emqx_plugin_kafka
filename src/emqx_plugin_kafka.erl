@@ -344,10 +344,17 @@ produce_kafka_payload(ClientId, Message) ->
   %%  ekaf:produce_async_batched(Topic, Payload).
 
   %%  下面自己修改。改成元组的形式，才能根据key的hash来决定分区。注意 配置文件中的kafka.partitionstrategy要改成custom
-  Topic = ekaf_get_topic(),
-  {ok, MessageBody} = emqx_json:safe_encode(Message),
-  %%  ?LOG_INFO("[KAFKA PLUGIN]MessageBody = ~s~n", [MessageBody]),
-  ekaf_lib:common_async(produce_async_batched, Topic, {ClientId, MessageBody}).
+  %%  如果ClientId是Server开头的，则不发送到kafka
+  ClientIdHead = string:left(ClientId, 6),
+  if
+    ClientIdHead == <<"Server">> ->
+      ok;
+    true ->
+      Topic = ekaf_get_topic(),
+      {ok, MessageBody} = emqx_json:safe_encode(Message),
+      %%  ?LOG_INFO("[KAFKA PLUGIN]MessageBody = ~s~n", [MessageBody]),
+      ekaf_lib:common_async(produce_async_batched, Topic, {ClientId, MessageBody})
+  end.
 
 
 ntoa({0, 0, 0, 0, 0, 16#ffff, AB, CD}) ->
