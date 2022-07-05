@@ -346,13 +346,13 @@ produce_kafka_payload(ClientId, Message) ->
   %%  下面自己修改。改成元组的形式，才能根据key的hash来决定分区。注意 配置文件中的kafka.partitionstrategy要改成custom
   %%  如果ClientId是Server开头的，则不发送到kafka
   ?LOG_INFO("[KAFKA PLUGIN]ClientId = ~s~n", [ClientId]),
-  ClientIdHead = string:sub_string(ClientId, 0, 6),
+  ClientIdHead = string:left(binary_to_list(ClientId), 6),
+  isServer = string:equal(ClientIdHead, <<"Server">>),
   ?LOG_INFO("[KAFKA PLUGIN]ClientIdHead = ~s~n", [ClientIdHead]),
 
-  if
-    ClientIdHead == <<"Server">> ->
-      ok;
-    true ->
+  if isServer == true ->
+    ok;
+    isServer == false ->
       Topic = ekaf_get_topic(),
       {ok, MessageBody} = emqx_json:safe_encode(Message),
       %%  ?LOG_INFO("[KAFKA PLUGIN]MessageBody = ~s~n", [MessageBody]),
