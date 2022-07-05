@@ -350,8 +350,10 @@ produce_kafka_payload(ClientId, Message) ->
   ?LOG_INFO("[KAFKA PLUGIN]ClientIdHead = ~s~n", [ClientIdHead]),
   if
     ClientIdHead == "server" ->
+    ?LOG_INFO("aaaaaaaa server"),
       true;
     ClientIdHead /= "server" ->
+    ?LOG_INFO("aaaaaaaaaa not server"),
       Topic = ekaf_get_topic(),
       {ok, MessageBody} = emqx_json:safe_encode(Message),
       %%  ?LOG_INFO("[KAFKA PLUGIN]MessageBody = ~s~n", [MessageBody]),
