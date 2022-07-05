@@ -348,10 +348,8 @@ produce_kafka_payload(ClientId, Message) ->
   ?LOG_INFO("[KAFKA PLUGIN]ClientId = ~s~n", [ClientId]),
   ClientIdHead = string:left(binary_to_list(ClientId), 6),
   ?LOG_INFO("[KAFKA PLUGIN]ClientIdHead = ~s~n", [ClientIdHead]),
-  isServer = string:equal(ClientIdHead, "server"),
+  isServer = string:equal(ClientIdHead, <<"server">>),
   ?LOG_INFO("[KAFKA PLUGIN]isServer = ~s~n", [isServer]),
-  isServer2 = string:equal(ClientIdHead, <<"server">>),
-  ?LOG_INFO("[KAFKA PLUGIN]isServer2 = ~s~n", [isServer2]),
 
   if isServer == true ->
     ok;
