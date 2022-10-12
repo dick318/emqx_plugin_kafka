@@ -349,7 +349,7 @@ produce_kafka_payload(Key, Message) ->
       {ok, MessageBody} = emqx_json:safe_encode(Message),
       % ?LOG_INFO("[KAFKA PLUGIN]Message = ~s~n",[MessageBody]),
       Payload = iolist_to_binary(MessageBody),
-      brod:produce_cb(emqx_repost_worker, Topic, hash, Key, Payload, fun(_, _) -> ok end),
+      brod:produce_cb(emqx_repost_worker, Topic, hash, Key, Payload, fun(_, _) -> ok end)
   end.
 
 
