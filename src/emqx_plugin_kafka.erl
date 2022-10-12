@@ -342,15 +342,16 @@ produce_kafka_payload(Key, Message) ->
   %%  如果ClientId是Server开头的，则不发送到kafka
   ClientIdHead = string:left(binary_to_list(Key), 6),
   if
-      ClientIdHead == "server" ->
-        true;
-      ClientIdHead /= "server" ->
-        Topic = get_kafka_topic(),
-        {ok, MessageBody} = emqx_json:safe_encode(Message),
-        % ?LOG_INFO("[KAFKA PLUGIN]Message = ~s~n",[MessageBody]),
-        Payload = iolist_to_binary(MessageBody),
-        brod:produce_cb(emqx_repost_worker, Topic, hash, Key, Payload, fun(_,_) -> ok end),
+    ClientIdHead == "server" ->
+      true;
+    ClientIdHead /= "server" ->
+      Topic = get_kafka_topic(),
+      {ok, MessageBody} = emqx_json:safe_encode(Message),
+      % ?LOG_INFO("[KAFKA PLUGIN]Message = ~s~n",[MessageBody]),
+      Payload = iolist_to_binary(MessageBody),
+      brod:produce_cb(emqx_repost_worker, Topic, hash, Key, Payload, fun(_, _) -> ok end),
   end.
+
 
 ntoa({0, 0, 0, 0, 0, 16#ffff, AB, CD}) ->
   inet_parse:ntoa({AB bsr 8, AB rem 256, CD bsr 8, CD rem 256});
